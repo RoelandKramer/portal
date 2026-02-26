@@ -197,12 +197,12 @@ def main() -> None:
 
     # Update these URLs + labels
     apps = [
-        {"title": "App 1", "subtitle": "Short description of what it does.", "url": "https://your-app-1.streamlit.app/"},
-        {"title": "App 2", "subtitle": "Short description of what it does.", "url": "https://your-app-2.streamlit.app/"},
-        {"title": "App 3", "subtitle": "Short description of what it does.", "url": "https://your-app-3.streamlit.app/"},
-        {"title": "App 4", "subtitle": "Short description of what it does.", "url": "https://your-app-4.streamlit.app/"},
-        {"title": "App 5", "subtitle": "Short description of what it does.", "url": "https://your-app-5.streamlit.app/"},
-        {"title": "App 6", "subtitle": "Short description of what it does.", "url": "https://your-app-6.streamlit.app/"},
+        {"title": "Opponent Corner Analysis", "subtitle": "This apps gives you access to insights on attacking and defensive corners 
+        by any team in the KKD. You can select the team and the number of matches you want to analyze, and you get a pptx file with the analysis in return.", "url": "https://opponent-analysis-fcdb2.streamlit.app/"},
+        {"title": "Physical Radar Graph", "subtitle" : "Use this app to obtain a radar chart comparing any FC Den Bosch player to players in the KKD or Eredivisie based on physical output (runs, sprints, total distance)", "url": "https://fcdenbosch-playerbenchmarks.streamlit.app/"},
+        {"title": "Player Report", "subtitle": "Use this app if you want to automatically return a Report of a Player based on SciSports data.", "url": "https://spelersrapport-ofnaaw7mqygeaths7pkg8r.streamlit.app/"},
+        {"title": "Player Movement per game", "subtitle": "Use this app to get an overview of player movement by FC Den Bosch players per game", "url": "https://speler-beweging-wedstrijd.streamlit.app/"},
+        {"title": "Team & Player analysis", "subtitle": "Use this app to compare data of players from a specified team with KKD or Eredivisie levels, containing football & physical data.", "url": "https://team-player-data-comparison-fcdb-3471893472.streamlit.app/"},
     ]
 
     logo_path = Path(__file__).parent / "assets" / "fc_den_bosch_logo.png"
