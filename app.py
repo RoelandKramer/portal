@@ -168,9 +168,9 @@ def _render_header(logo_b64: str) -> None:
 
 
 def _render_cards(apps: list[dict[str, str]]) -> None:
-    parts = ['<div class="card-grid">']
+    html = ['<div class="card-grid">']
     for app in apps:
-        parts.append(
+        html.append(
             f"""
             <a class="app-card" href="{app['url']}" target="_self" rel="noopener noreferrer">
               <div class="app-card-inner">
@@ -181,9 +181,10 @@ def _render_cards(apps: list[dict[str, str]]) -> None:
             </a>
             """
         )
-    parts.append("</div>")
-    st.markdown("\n".join(parts), unsafe_allow_html=True)
+    html.append("</div>")
 
+    # IMPORTANT: must be st.markdown + unsafe_allow_html=True
+    st.markdown("".join(html), unsafe_allow_html=True)
 
 def _require_auth(cookies: EncryptedCookieManager, password: str, signing_key: str) -> None:
     ttl_seconds = 60 * 60 * 24 * 30  # 30 days
