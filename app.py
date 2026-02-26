@@ -2,14 +2,44 @@
 from __future__ import annotations
 
 import base64
+import hashlib
+import hmac
+import time
 from pathlib import Path
+from typing import Any
 
 import streamlit as st
+from streamlit_cookies_manager import EncryptedCookieManager
 
 
 def _b64_image(path: Path) -> str:
-    data = path.read_bytes()
-    return base64.b64encode(data).decode("utf-8")
+    return base64.b64encode(path.read_bytes()).decode("utf-8")
+
+
+def _constant_time_eq(a: str, b: str) -> bool:
+    return hmac.compare_digest(a.encode("utf-8"), b.encode("utf-8"))
+
+
+def _sign(value: str, key: str) -> str:
+    return hmac.new(key.encode("utf-8"), value.encode("utf-8"), hashlib.sha256).hexdigest()
+
+
+def _make_token(key: str, ttl_seconds: int) -> str:
+    exp = int(time.time()) + ttl_seconds
+    payload = f"{exp}"
+    sig = _sign(payload, key)
+    return f"{payload}.{sig}"
+
+
+def _verify_token(token: str, key: str) -> bool:
+    try:
+        payload, sig = token.split(".", 1)
+        if not _constant_time_eq(_sign(payload, key), sig):
+            return False
+        exp = int(payload)
+        return time.time() <= exp
+    except Exception:
+        return False
 
 
 def _render_header(logo_b64: str) -> None:
@@ -26,28 +56,15 @@ def _render_header(logo_b64: str) -> None:
             --shadow-hover: 0 14px 34px rgba(0,0,0,.16);
             --radius: 18px;
           }}
+          .stApp {{ background: #F6F9FC; color: var(--text); }}
+          section.main > div {{ padding-top: 0rem; }}
 
-          /* Page */
-          .stApp {{
-            background: #F6F9FC;
-            color: var(--text);
-          }}
-
-          /* Remove extra top padding */
-          section.main > div {{
-            padding-top: 0rem;
-          }}
-
-          /* Header */
           .portal-header {{
             position: relative;
             height: 170px;
             margin: 0 -1rem 1.1rem -1rem;
           }}
-          .portal-header .bar {{
-            height: 120px;
-            background: var(--club-blue);
-          }}
+          .portal-header .bar {{ height: 120px; background: var(--club-blue); }}
           .portal-header .strip {{
             height: 50px;
             background: var(--strip);
@@ -73,40 +90,24 @@ def _render_header(logo_b64: str) -> None:
             object-fit: contain;
           }}
 
-          /* Title block under header */
           .portal-title {{
             text-align: center;
             margin-top: .2rem;
             margin-bottom: 1.2rem;
           }}
-          .portal-title h1 {{
-            font-size: 1.6rem;
-            margin: 0;
-            letter-spacing: .2px;
-          }}
-          .portal-title p {{
-            margin: .35rem 0 0 0;
-            color: var(--muted);
-            font-size: .95rem;
-          }}
+          .portal-title h1 {{ font-size: 1.6rem; margin: 0; letter-spacing: .2px; }}
+          .portal-title p {{ margin: .35rem 0 0 0; color: var(--muted); font-size: .95rem; }}
 
-          /* Card grid */
           .card-grid {{
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 16px;
           }}
           @media (max-width: 760px) {{
-            .card-grid {{
-              grid-template-columns: 1fr;
-            }}
+            .card-grid {{ grid-template-columns: 1fr; }}
           }}
 
-          /* Clickable card */
-          a.app-card {{
-            text-decoration: none !important;
-            color: inherit !important;
-          }}
+          a.app-card {{ text-decoration: none !important; color: inherit !important; }}
           .app-card-inner {{
             background: var(--card-bg);
             border-radius: var(--radius);
@@ -121,11 +122,7 @@ def _render_header(logo_b64: str) -> None:
             box-shadow: var(--shadow-hover);
             border-color: rgba(0,0,0,.10);
           }}
-          .app-card-title {{
-            font-weight: 700;
-            font-size: 1.05rem;
-            margin: 0 0 .25rem 0;
-          }}
+          .app-card-title {{ font-weight: 700; font-size: 1.05rem; margin: 0 0 .25rem 0; }}
           .app-card-subtitle {{
             margin: 0 0 .75rem 0;
             color: var(--muted);
@@ -148,7 +145,6 @@ def _render_header(logo_b64: str) -> None:
             box-shadow: 0 0 0 6px rgba(0,119,200,.10);
           }}
 
-          /* Hide Streamlit chrome (optional, keep if you want cleaner portal) */
           #MainMenu {{visibility: hidden;}}
           footer {{visibility: hidden;}}
           header {{visibility: hidden;}}
@@ -172,30 +168,89 @@ def _render_header(logo_b64: str) -> None:
 
 
 def _render_cards(apps: list[dict[str, str]]) -> None:
-    cards_html = ['<div class="card-grid">']
+    parts = ['<div class="card-grid">']
     for app in apps:
-        title = app["title"]
-        subtitle = app["subtitle"]
-        url = app["url"]
-        cards_html.append(
+        parts.append(
             f"""
-            <a class="app-card" href="{url}" target="_self" rel="noopener noreferrer">
+            <a class="app-card" href="{app['url']}" target="_self" rel="noopener noreferrer">
               <div class="app-card-inner">
-                <div class="app-card-title">{title}</div>
-                <div class="app-card-subtitle">{subtitle}</div>
+                <div class="app-card-title">{app['title']}</div>
+                <div class="app-card-subtitle">{app['subtitle']}</div>
                 <div class="app-card-cta"><span class="dot"></span> Open app</div>
               </div>
             </a>
             """
         )
-    cards_html.append("</div>")
-    st.markdown("\n".join(cards_html), unsafe_allow_html=True)
+    parts.append("</div>")
+    st.markdown("\n".join(parts), unsafe_allow_html=True)
+
+
+def _require_auth(cookies: EncryptedCookieManager, password: str, signing_key: str) -> None:
+    ttl_seconds = 60 * 60 * 24 * 30  # 30 days
+
+    if "auth_token" in cookies and _verify_token(cookies["auth_token"], signing_key):
+        st.session_state["authenticated"] = True
+        return
+
+    st.session_state["authenticated"] = False
+
+    st.markdown(
+        """
+        <div style="max-width:460px;margin:2rem auto 0 auto;background:white;padding:18px 18px 10px 18px;
+                    border-radius:18px;box-shadow:0 10px 25px rgba(0,0,0,.10);border:1px solid rgba(0,0,0,.06);">
+          <h2 style="margin:0 0 .25rem 0;">🔒 Portal access</h2>
+          <p style="margin:0 0 1rem 0;color:rgba(0,0,0,.55);">Enter the password to continue.</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    with st.form("login_form", clear_on_submit=False):
+        pw = st.text_input("Password", type="password")
+        submitted = st.form_submit_button("Unlock")
+
+    if submitted:
+        if _constant_time_eq(pw, password):
+            token = _make_token(signing_key, ttl_seconds)
+            cookies["auth_token"] = token
+            cookies.save()
+            st.session_state["authenticated"] = True
+            st.rerun()
+        else:
+            st.error("Incorrect password.")
 
 
 def main() -> None:
     st.set_page_config(page_title="FC Den Bosch Portal", page_icon="🧭", layout="wide")
 
-    # Update these URLs + labels
+    if "PORTAL_PASSWORD" not in st.secrets or "COOKIE_SIGNING_KEY" not in st.secrets:
+        st.error("Missing secrets: PORTAL_PASSWORD and/or COOKIE_SIGNING_KEY in .streamlit/secrets.toml")
+        st.stop()
+
+    cookies = EncryptedCookieManager(
+        prefix="fcd_portal_",
+        password=st.secrets["COOKIE_SIGNING_KEY"],
+    )
+    if not cookies.ready():
+        st.stop()
+
+    _require_auth(
+        cookies=cookies,
+        password=st.secrets["PORTAL_PASSWORD"],
+        signing_key=st.secrets["COOKIE_SIGNING_KEY"],
+    )
+
+    if not st.session_state.get("authenticated", False):
+        return
+
+    # Optional logout
+    with st.sidebar:
+        if st.button("Log out", use_container_width=True):
+            cookies.pop("auth_token", None)
+            cookies.save()
+            st.session_state["authenticated"] = False
+            st.rerun()
+
     apps = [
         {"title": "Opponent Corner Analysis", "subtitle": "This apps gives you access to insights on attacking and defensive corners 
         by any team in the KKD. You can select the team and the number of matches you want to analyze, and you get a pptx file with the analysis in return.", "url": "https://opponent-analysis-fcdb2.streamlit.app/"},
@@ -207,14 +262,11 @@ def main() -> None:
 
     logo_path = Path(__file__).parent / "assets" / "fc_den_bosch_logo.png"
     if not logo_path.exists():
-        st.error(f"Logo not found at: {logo_path}. Add it to your repo and redeploy.")
+        st.error(f"Logo not found at: {logo_path}")
         st.stop()
 
     _render_header(_b64_image(logo_path))
-
-    container = st.container()
-    with container:
-        _render_cards(apps)
+    _render_cards(apps)
 
     st.markdown(
         "<div style='text-align:center;color:rgba(0,0,0,.45);font-size:.85rem;margin:22px 0 10px;'>"
