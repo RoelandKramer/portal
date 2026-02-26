@@ -204,7 +204,7 @@ def _render_header(logo_b64: str) -> None:
 </div>
 
 <div class="portal-title">
-  <h1>FC Den Bosch • App Portal: All Data-Driven applications</h1>
+  <h1>FC Den Bosch • App Portal: Data-Driven applications</h1>
   <p>Select an application to launch</p>
 </div>
 """
