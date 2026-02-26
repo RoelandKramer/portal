@@ -252,8 +252,7 @@ def main() -> None:
             st.rerun()
 
     apps = [
-        {"title": "Opponent Corner Analysis", "subtitle": "This apps gives you access to insights on attacking and defensive corners 
-        by any team in the KKD. You can select the team and the number of matches you want to analyze, and you get a pptx file with the analysis in return.", "url": "https://opponent-analysis-fcdb2.streamlit.app/"},
+        {"title": "Opponent Corner Analysis", "subtitle": "This apps gives you access to insights on attacking and defensive corners by any team in the KKD. You can select the team and the number of matches you want to analyze, and you get a pptx file with the analysis in return.", "url": "https://opponent-analysis-fcdb2.streamlit.app/"},
         {"title": "Physical Radar Graph", "subtitle" : "Use this app to obtain a radar chart comparing any FC Den Bosch player to players in the KKD or Eredivisie based on physical output (runs, sprints, total distance)", "url": "https://fcdenbosch-playerbenchmarks.streamlit.app/"},
         {"title": "Player Report", "subtitle": "Use this app if you want to automatically return a Report of a Player based on SciSports data.", "url": "https://spelersrapport-ofnaaw7mqygeaths7pkg8r.streamlit.app/"},
         {"title": "Player Movement per game", "subtitle": "Use this app to get an overview of player movement by FC Den Bosch players per game", "url": "https://speler-beweging-wedstrijd.streamlit.app/"},
