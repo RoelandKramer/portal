@@ -4,11 +4,13 @@ from __future__ import annotations
 import base64
 import hashlib
 import hmac
+import html as _html
+import textwrap
 import time
 from pathlib import Path
-from typing import Any
 
 import streamlit as st
+import streamlit.components.v1 as components
 from streamlit_cookies_manager import EncryptedCookieManager
 
 
@@ -43,189 +45,85 @@ def _verify_token(token: str, key: str) -> bool:
 
 
 def _render_header(logo_b64: str) -> None:
-    st.markdown(
-        f"""
-        <style>
-          :root {{
-            --club-blue: #0077C8;
-            --strip: #E9F2FA;
-            --card-bg: #FFFFFF;
-            --text: #0B1B2B;
-            --muted: #5A6B7B;
-            --shadow: 0 10px 25px rgba(0,0,0,.10);
-            --shadow-hover: 0 14px 34px rgba(0,0,0,.16);
-            --radius: 18px;
-          }}
-          .stApp {{ background: #F6F9FC; color: var(--text); }}
-          section.main > div {{ padding-top: 0rem; }}
-
-          .portal-header {{
-            position: relative;
-            height: 170px;
-            margin: 0 -1rem 1.1rem -1rem;
-          }}
-          .portal-header .bar {{ height: 120px; background: var(--club-blue); }}
-          .portal-header .strip {{
-            height: 50px;
-            background: var(--strip);
-            border-bottom: 1px solid rgba(0,0,0,.06);
-          }}
-          .portal-header .logo {{
-            position: absolute;
-            left: 50%;
-            top: 74px;
-            transform: translate(-50%, -50%);
-            width: 96px;
-            height: 96px;
-            border-radius: 999px;
-            background: white;
-            display: grid;
-            place-items: center;
-            box-shadow: var(--shadow);
-            border: 6px solid rgba(255,255,255,.85);
-          }}
-          .portal-header .logo img {{
-            width: 78px;
-            height: 78px;
-            object-fit: contain;
-          }}
-
-          .portal-title {{
-            text-align: center;
-            margin-top: .2rem;
-            margin-bottom: 1.2rem;
-          }}
-          .portal-title h1 {{ font-size: 1.6rem; margin: 0; letter-spacing: .2px; }}
-          .portal-title p {{ margin: .35rem 0 0 0; color: var(--muted); font-size: .95rem; }}
-
-          .card-grid {{
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 16px;
-          }}
-          @media (max-width: 760px) {{
-            .card-grid {{ grid-template-columns: 1fr; }}
-          }}
-
-          a.app-card {{ text-decoration: none !important; color: inherit !important; }}
-          .app-card-inner {{
-            background: var(--card-bg);
-            border-radius: var(--radius);
-            padding: 18px 18px 16px 18px;
-            box-shadow: var(--shadow);
-            border: 1px solid rgba(0,0,0,.06);
-            transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
-            height: 100%;
-          }}
-          .app-card-inner:hover {{
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-hover);
-            border-color: rgba(0,0,0,.10);
-          }}
-          .app-card-title {{ font-weight: 700; font-size: 1.05rem; margin: 0 0 .25rem 0; }}
-          .app-card-subtitle {{
-            margin: 0 0 .75rem 0;
-            color: var(--muted);
-            font-size: .92rem;
-            line-height: 1.25rem;
-          }}
-          .app-card-cta {{
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            font-weight: 700;
-            color: var(--club-blue);
-            font-size: .95rem;
-          }}
-          .app-card-cta .dot {{
-            width: 10px;
-            height: 10px;
-            border-radius: 999px;
-            background: var(--club-blue);
-            box-shadow: 0 0 0 6px rgba(0,119,200,.10);
-          }}
-
-          #MainMenu {{visibility: hidden;}}
-          footer {{visibility: hidden;}}
-          header {{visibility: hidden;}}
-        </style>
-
-        <div class="portal-header">
-          <div class="bar"></div>
-          <div class="strip"></div>
-          <div class="logo">
-            <img src="data:image/png;base64,{logo_b64}" alt="Logo"/>
-          </div>
-        </div>
-
-        <div class="portal-title">
-          <h1>FC Den Bosch • App Portal</h1>
-          <p>Select an application to launch</p>
-        </div>
-        """,
-        unsafe_allow_html=True,
+    header_html = (
+        "<style>"
+        ":root{"
+        "--club-blue:#0077C8;"
+        "--strip:#E9F2FA;"
+        "--card-bg:#FFFFFF;"
+        "--text:#0B1B2B;"
+        "--muted:#5A6B7B;"
+        "--shadow:0 10px 25px rgba(0,0,0,.10);"
+        "--shadow-hover:0 14px 34px rgba(0,0,0,.16);"
+        "--radius:18px;"
+        "}"
+        ".stApp{background:#F6F9FC;color:var(--text);}"
+        "section.main>div{padding-top:0rem;}"
+        ".portal-header{position:relative;height:170px;margin:0 -1rem 1.1rem -1rem;}"
+        ".portal-header .bar{height:120px;background:var(--club-blue);}"
+        ".portal-header .strip{height:50px;background:var(--strip);border-bottom:1px solid rgba(0,0,0,.06);}"
+        ".portal-header .logo{position:absolute;left:50%;top:74px;transform:translate(-50%,-50%);"
+        "width:96px;height:96px;border-radius:999px;background:white;display:grid;place-items:center;"
+        "box-shadow:var(--shadow);border:6px solid rgba(255,255,255,.85);}"
+        ".portal-header .logo img{width:78px;height:78px;object-fit:contain;}"
+        ".portal-title{text-align:center;margin-top:.2rem;margin-bottom:1.2rem;}"
+        ".portal-title h1{font-size:1.6rem;margin:0;letter-spacing:.2px;}"
+        ".portal-title p{margin:.35rem 0 0 0;color:var(--muted);font-size:.95rem;}"
+        "#MainMenu{visibility:hidden;}footer{visibility:hidden;}header{visibility:hidden;}"
+        "</style>"
+        f"<div class='portal-header'>"
+        f"  <div class='bar'></div>"
+        f"  <div class='strip'></div>"
+        f"  <div class='logo'><img src='data:image/png;base64,{logo_b64}' alt='Logo'/></div>"
+        f"</div>"
+        f"<div class='portal-title'>"
+        f"  <h1>FC Den Bosch • App Portal</h1>"
+        f"  <p>Select an application to launch</p>"
+        f"</div>"
     )
+    st.markdown(header_html, unsafe_allow_html=True)
 
-
-def _render_cards(apps: list[dict[str, str]]) -> None:
-    html = ['<div class="card-grid">']
-    for app in apps:
-        html.append(
-            f"""
-            <a class="app-card" href="{app['url']}" target="_self" rel="noopener noreferrer">
-              <div class="app-card-inner">
-                <div class="app-card-title">{app['title']}</div>
-                <div class="app-card-subtitle">{app['subtitle']}</div>
-                <div class="app-card-cta"><span class="dot"></span> Open app</div>
-              </div>
-            </a>
-            """
-        )
-    html.append("</div>")
-
-    # IMPORTANT: must be st.markdown + unsafe_allow_html=True
-    st.markdown("".join(html), unsafe_allow_html=True)
 
 def _require_auth(cookies: EncryptedCookieManager, password: str, signing_key: str) -> None:
     ttl_seconds = 60 * 60 * 24 * 30  # 30 days
 
-    if "auth_token" in cookies and _verify_token(cookies["auth_token"], signing_key):
+    token = cookies["auth_token"] if "auth_token" in cookies else None
+    if token and _verify_token(token, signing_key):
         st.session_state["authenticated"] = True
         return
 
     st.session_state["authenticated"] = False
 
-    st.markdown(
-        """
-        <div style="max-width:460px;margin:2rem auto 0 auto;background:white;padding:18px 18px 10px 18px;
-                    border-radius:18px;box-shadow:0 10px 25px rgba(0,0,0,.10);border:1px solid rgba(0,0,0,.06);">
-          <h2 style="margin:0 0 .25rem 0;">🔒 Portal access</h2>
-          <p style="margin:0 0 1rem 0;color:rgba(0,0,0,.55);">Enter the password to continue.</p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    login_box = """
+    <div style="max-width:460px;margin:2rem auto 0 auto;background:white;padding:18px 18px 10px 18px;
+                border-radius:18px;box-shadow:0 10px 25px rgba(0,0,0,.10);border:1px solid rgba(0,0,0,.06);">
+      <h2 style="margin:0 0 .25rem 0;">🔒 Portal access</h2>
+      <p style="margin:0 0 1rem 0;color:rgba(0,0,0,.55);">Enter the password to continue.</p>
+    </div>
+    """
+    st.markdown(textwrap.dedent(login_box).strip(), unsafe_allow_html=True)
 
     with st.form("login_form", clear_on_submit=False):
         pw = st.text_input("Password", type="password")
         submitted = st.form_submit_button("Unlock")
 
-    if submitted:
-        if _constant_time_eq(pw, password):
-            token = _make_token(signing_key, ttl_seconds)
-            cookies["auth_token"] = token
-            cookies.save()
-            st.session_state["authenticated"] = True
-            st.rerun()
-        else:
-            st.error("Incorrect password.")
+    if not submitted:
+        return
+
+    if _constant_time_eq(pw, password):
+        cookies["auth_token"] = _make_token(signing_key, ttl_seconds)
+        cookies.save()
+        st.session_state["authenticated"] = True
+        st.rerun()
+
+    st.error("Incorrect password.")
 
 
 def main() -> None:
     st.set_page_config(page_title="FC Den Bosch Portal", page_icon="🧭", layout="wide")
 
     if "PORTAL_PASSWORD" not in st.secrets or "COOKIE_SIGNING_KEY" not in st.secrets:
-        st.error("Missing secrets: PORTAL_PASSWORD and/or COOKIE_SIGNING_KEY in .streamlit/secrets.toml")
+        st.error("Missing secrets: PORTAL_PASSWORD and/or COOKIE_SIGNING_KEY")
         st.stop()
 
     cookies = EncryptedCookieManager(
@@ -240,11 +138,9 @@ def main() -> None:
         password=st.secrets["PORTAL_PASSWORD"],
         signing_key=st.secrets["COOKIE_SIGNING_KEY"],
     )
-
     if not st.session_state.get("authenticated", False):
         return
 
-    # Optional logout
     with st.sidebar:
         if st.button("Log out", use_container_width=True):
             cookies.pop("auth_token", None)
@@ -253,11 +149,40 @@ def main() -> None:
             st.rerun()
 
     apps = [
-        {"title": "Opponent Corner Analysis", "subtitle": "This apps gives you access to insights on attacking and defensive corners by any team in the KKD. You can select the team and the number of matches you want to analyze, and you get a pptx file with the analysis in return.", "url": "https://opponent-analysis-fcdb2.streamlit.app/"},
-        {"title": "Physical Radar Graph", "subtitle" : "Use this app to obtain a radar chart comparing any FC Den Bosch player to players in the KKD or Eredivisie based on physical output (runs, sprints, total distance)", "url": "https://fcdenbosch-playerbenchmarks.streamlit.app/"},
-        {"title": "Player Report", "subtitle": "Use this app if you want to automatically return a Report of a Player based on SciSports data.", "url": "https://spelersrapport-ofnaaw7mqygeaths7pkg8r.streamlit.app/"},
-        {"title": "Player Movement per game", "subtitle": "Use this app to get an overview of player movement by FC Den Bosch players per game", "url": "https://speler-beweging-wedstrijd.streamlit.app/"},
-        {"title": "Team & Player analysis", "subtitle": "Use this app to compare data of players from a specified team with KKD or Eredivisie levels, containing football & physical data.", "url": "https://team-player-data-comparison-fcdb-3471893472.streamlit.app/"},
+        {
+            "title": "Opponent Corner Analysis",
+            "subtitle": (
+                "This app gives you access to insights on attacking and defensive corners by any team in the KKD. "
+                "Select the team and number of matches; the app returns a pptx file with the analysis."
+            ),
+            "url": "https://opponent-analysis-fcdb2.streamlit.app/",
+        },
+        {
+            "title": "Physical Radar Graph",
+            "subtitle": (
+                "Obtain a radar chart comparing any FC Den Bosch player to KKD/Eredivisie peers "
+                "based on physical output (runs, sprints, total distance)."
+            ),
+            "url": "https://fcdenbosch-playerbenchmarks.streamlit.app/",
+        },
+        {
+            "title": "Player Report",
+            "subtitle": "Automatically generate a player report based on SciSports data.",
+            "url": "https://spelersrapport-ofnaaw7mqygeaths7pkg8r.streamlit.app/",
+        },
+        {
+            "title": "Player Movement per game",
+            "subtitle": "Get an overview of FC Den Bosch player movement per match.",
+            "url": "https://speler-beweging-wedstrijd.streamlit.app/",
+        },
+        {
+            "title": "Team & Player analysis",
+            "subtitle": (
+                "Compare player data from a specified team to KKD or Eredivisie levels, "
+                "including football and physical metrics."
+            ),
+            "url": "https://team-player-data-comparison-fcdb-3471893472.streamlit.app/",
+        },
     ]
 
     logo_path = Path(__file__).parent / "assets" / "fc_den_bosch_logo.png"
@@ -274,6 +199,113 @@ def main() -> None:
         "</div>",
         unsafe_allow_html=True,
     )
+
+def _render_cards(apps: list[dict[str, str]]) -> None:
+    cards: list[str] = []
+    for app in apps:
+        title = _html.escape(app["title"])
+        subtitle = _html.escape(app["subtitle"])
+        url = _html.escape(app["url"], quote=True)
+        cards.append(
+            """
+            <a class="app-card" href="{url}" target="_blank" rel="noopener noreferrer">
+              <div class="app-card-inner">
+                <div class="app-card-title">{title}</div>
+                <div class="app-card-subtitle">{subtitle}</div>
+                <div class="app-card-cta"><span class="dot"></span> Open app</div>
+              </div>
+            </a>
+            """
+        )
+
+    html_doc = f"""
+    <style>
+      :root {{
+        --club-blue: #0077C8;
+        --card-bg: #FFFFFF;
+        --muted: #5A6B7B;
+        --shadow: 0 10px 25px rgba(0,0,0,.10);
+        --shadow-hover: 0 14px 34px rgba(0,0,0,.16);
+        --radius: 18px;
+      }}
+
+      body {{
+        margin: 0;
+        padding: 0;
+        background: transparent;
+      }}
+
+      .card-grid {{
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+      }}
+
+      @media (max-width: 760px) {{
+        .card-grid {{
+          grid-template-columns: 1fr;
+        }}
+      }}
+
+      a.app-card {{
+        text-decoration: none !important;
+        color: inherit !important;
+      }}
+
+      .app-card-inner {{
+        background: var(--card-bg);
+        border-radius: var(--radius);
+        padding: 18px 18px 16px 18px;
+        box-shadow: var(--shadow);
+        border: 1px solid rgba(0,0,0,.06);
+        transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+        height: 100%;
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      }}
+
+      .app-card-inner:hover {{
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-hover);
+        border-color: rgba(0,0,0,.10);
+      }}
+
+      .app-card-title {{
+        font-weight: 700;
+        font-size: 1.05rem;
+        margin: 0 0 .25rem 0;
+        color: #0B1B2B;
+      }}
+
+      .app-card-subtitle {{
+        margin: 0 0 .75rem 0;
+        color: var(--muted);
+        font-size: .92rem;
+        line-height: 1.25rem;
+      }}
+
+      .app-card-cta {{
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 700;
+        color: var(--club-blue);
+        font-size: .95rem;
+      }}
+
+      .app-card-cta .dot {{
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        background: var(--club-blue);
+        box-shadow: 0 0 0 6px rgba(0,119,200,.10);
+      }}
+    </style>
+
+    <div class="card-grid">
+      {''.join(cards)}
+    </div>
+    """
+    components.html(textwrap.dedent(html_doc).strip(), height=720, scrolling=False)
 
 
 if __name__ == "__main__":
