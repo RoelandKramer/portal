@@ -66,6 +66,10 @@ def _render_header(logo_b64: str) -> None:
     padding-top: 0rem;
   }}
 
+  /* Hide sidebar + its toggle */
+  [data-testid="stSidebar"] {{ display: none; }}
+  [data-testid="collapsedControl"] {{ display: none; }}
+
   .portal-header {{
     position: relative;
     height: 170px;
@@ -215,7 +219,6 @@ def _render_cards(apps: list[dict[str, str]]) -> None:
         subtitle = html.escape(app["subtitle"])
         url = html.escape(app["url"], quote=True)
 
-        # IMPORTANT: no leading indentation at the start of lines
         parts.append(
             (
                 f"<a class='app-card' href='{url}' target='_blank' rel='noopener noreferrer'>"
@@ -288,13 +291,6 @@ def main() -> None:
     )
     if not st.session_state.get("authenticated", False):
         return
-
-    with st.sidebar:
-        if st.button("Log out", use_container_width=True):
-            cookies.pop("auth_token", None)
-            cookies.save()
-            st.session_state["authenticated"] = False
-            st.rerun()
 
     apps = [
         {
