@@ -2,45 +2,15 @@
 from __future__ import annotations
 
 import base64
-import hashlib
-import hmac
 import html
 import textwrap
-import time
 from pathlib import Path
 
 import streamlit as st
-from streamlit_cookies_manager import EncryptedCookieManager
 
 
 def _b64_image(path: Path) -> str:
     return base64.b64encode(path.read_bytes()).decode("utf-8")
-
-
-def _constant_time_eq(a: str, b: str) -> bool:
-    return hmac.compare_digest(a.encode("utf-8"), b.encode("utf-8"))
-
-
-def _sign(value: str, key: str) -> str:
-    return hmac.new(key.encode("utf-8"), value.encode("utf-8"), hashlib.sha256).hexdigest()
-
-
-def _make_token(key: str, ttl_seconds: int) -> str:
-    exp = int(time.time()) + ttl_seconds
-    payload = f"{exp}"
-    sig = _sign(payload, key)
-    return f"{payload}.{sig}"
-
-
-def _verify_token(token: str, key: str) -> bool:
-    try:
-        payload, sig = token.split(".", 1)
-        if not _constant_time_eq(_sign(payload, key), sig):
-            return False
-        exp = int(payload)
-        return time.time() <= exp
-    except Exception:
-        return False
 
 
 def _render_header(logo_b64: str) -> None:
@@ -235,62 +205,8 @@ def _render_cards(apps: list[dict[str, str]]) -> None:
     st.markdown("\n".join(parts), unsafe_allow_html=True)
 
 
-def _require_auth(cookies: EncryptedCookieManager, password: str, signing_key: str) -> None:
-    ttl_seconds = 60 * 60 * 24 * 30  # 30 days
-
-    token = cookies["auth_token"] if "auth_token" in cookies else None
-    if token and _verify_token(token, signing_key):
-        st.session_state["authenticated"] = True
-        return
-
-    st.session_state["authenticated"] = False
-
-    login_box = """
-<div style="max-width:460px;margin:2rem auto 0 auto;background:white;padding:18px 18px 10px 18px;
-            border-radius:18px;box-shadow:0 10px 25px rgba(0,0,0,.10);border:1px solid rgba(0,0,0,.06);">
-  <h2 style="margin:0 0 .25rem 0;">🔒 Portal access</h2>
-  <p style="margin:0 0 1rem 0;color:rgba(0,0,0,.55);">Enter the password to continue.</p>
-</div>
-"""
-    st.markdown(textwrap.dedent(login_box).strip(), unsafe_allow_html=True)
-
-    with st.form("login_form", clear_on_submit=False):
-        pw = st.text_input("Password", type="password")
-        submitted = st.form_submit_button("Unlock")
-
-    if not submitted:
-        return
-
-    if _constant_time_eq(pw, password):
-        cookies["auth_token"] = _make_token(signing_key, ttl_seconds)
-        cookies.save()
-        st.session_state["authenticated"] = True
-        st.rerun()
-
-    st.error("Incorrect password.")
-
-
 def main() -> None:
     st.set_page_config(page_title="FC Den Bosch Portal", page_icon="🧭", layout="wide")
-
-    if "PORTAL_PASSWORD" not in st.secrets or "COOKIE_SIGNING_KEY" not in st.secrets:
-        st.error("Missing secrets: PORTAL_PASSWORD and/or COOKIE_SIGNING_KEY")
-        st.stop()
-
-    cookies = EncryptedCookieManager(
-        prefix="fcd_portal_",
-        password=st.secrets["COOKIE_SIGNING_KEY"],
-    )
-    if not cookies.ready():
-        st.stop()
-
-    _require_auth(
-        cookies=cookies,
-        password=st.secrets["PORTAL_PASSWORD"],
-        signing_key=st.secrets["COOKIE_SIGNING_KEY"],
-    )
-    if not st.session_state.get("authenticated", False):
-        return
 
     apps = [
         {
